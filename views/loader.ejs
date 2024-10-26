@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        /* General styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a18cd1);
+            background-size: 200% 200%;
+            animation: gradientAnimation 10s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            z-index: 10;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* Chat app styles */
+        .aa {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .nav {
+            width: auto;
+            padding: 0.5rem 2rem;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .nav h1 {
+            font-size: 1.5rem;
+            color: #333;
+        }
+        .mm {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .chat {
+            width: 60%;
+            max-width: 800px;
+            height: 600px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .left, .right {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(240, 240, 240, 0.9);
+            margin-bottom: 10px;
+            max-height: 400px;
+        }
+        .left {
+            text-align: left;
+        }
+        .right {
+            text-align: right;
+        }
+        .bottom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .msg {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+        .send {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .send:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader -->
+    <div class="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Chat App -->
+    <div class="aa hidden">
+        <div class="nav">
+            <h1>Chat App</h1>
+        </div>
+    </div>
+    <div class="mm hidden">
+        <div class="chat">
+            <div class="left"></div>
+            <div class="right"></div>
+            <div class="bottom">
+                <input class="msg" type="text" placeholder="Type a message">
+                <button class="send">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script>
+        // Show the chat app after 2 seconds
+        setTimeout(() => {
+            document.querySelector('.loader').classList.add('hidden');
+            document.querySelectorAll('.hidden').forEach(el => el.classList.remove('hidden'));
+        }, 2000);
+
+        let socket = io();
+
+        let right = document.querySelector(".right");
+        let left = document.querySelector(".left");
+        let msg = document.querySelector(".msg");
+        let send = document.querySelector(".send");
+
+        const name = prompt("Enter your name");
+        appendMessage("You joined");
+        socket.emit("new-user", name);
+
+        send.addEventListener("click", function(e) {
+            e.preventDefault();
+            if (msg.value.trim() !== "") {
+                socket.emit("message", msg.value);
+                appendMessage(`You: ${msg.value}`, "right");
+                msg.value = "";
+            }
+        });
+
+        socket.on("messagee", function(data) {
+            appendMessage(`${data.name}: ${data.data}`, "left");
+        });
+
+        socket.on("user-connected", function(name) {
+            appendMessage(`${name} joined the chat`, "left");
+        });
+
+        socket.on("user-disconnected", function(name) {
+            appendMessage(`${name} disconnected`, "left");
+        });
+
+        function appendMessage(message, side) {
+            const messageElement = document.createElement("div");
+            messageElement.innerText = message;
+            if (side === "right") {
+                right.append(messageElement);
+            } else {
+                left.append(messageElement);
+            }
+        }
+    </script>
+</body>
+</html>
